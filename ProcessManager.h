@@ -15,6 +15,11 @@
 namespace Process
 {
 
+// TODO : See if it is possible to use boost::thread::id to check for not a thread instead of mIsProcessCheckInProgress
+// TODO : Create wait() mehtod to wait for all subprocesses to finish
+// TODO : Fix CheckProcesses() to catch finished processes. Mb with kill()
+// TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
+
 std::vector<std::string> StringToVector(std::string s);
 
 class ProcessScheduler
