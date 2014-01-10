@@ -20,17 +20,20 @@ namespace Process
 // TODO : Fix CheckProcesses() to catch finished processes. Mb with kill()
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
 
+using namespace std;
+using namespace boost;
+using namespace boost::posix_time;
+using namespace boost::process;
+using namespace boost::filesystem;
+
+
 vector<string> StringToVector(string s);
 
 class ProcessScheduler
 {
-    using namespace std;
-    using namespace boost;
-    using namespace boost::posix_time;
-    using namespace boost::process;
-    using namespace boost::filesystem;
-
 public:
+
+
 
     ProcessScheduler();
     ProcessScheduler( path p, string arguments, string pid_alias);
