@@ -16,7 +16,7 @@ namespace Process
 
 using namespace std;
 using namespace boost;
-using namespace process;
+using namespace boost::process;
 
 vector<string> StringToVector(string s)
 {
