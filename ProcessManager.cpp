@@ -14,13 +14,17 @@
 namespace Process
 {
 
-std::vector<std::string> StringToVector(std::string s)
+using namespace std;
+using namespace boost;
+using namespace process;
+
+vector<string> StringToVector(string s)
 {
-    std::stringstream ss(s);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    std::vector<std::string> args(begin, end);
-    std::copy(args.begin(), args.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+    stringstream ss(s);
+    istream_iterator<string> begin(ss);
+    istream_iterator<string> end;
+    vector<string> args(begin, end);
+    copy(args.begin(), args.end(), ostream_iterator<string>(cout, "\n"));
 
     return args;
 }
@@ -28,8 +32,8 @@ std::vector<std::string> StringToVector(std::string s)
 
 ProcessScheduler::ProcessScheduler()
     :
-      mSelf(boost::process::self::get_instance()),
-      mChildrenObjectsMap(new std::map<std::string, boost::process::child>),
+      mSelf(self::get_instance()),
+      mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
       mProcessCheckInterval(1000),
       mIsProcessCheckInProgress(false)
@@ -37,10 +41,10 @@ ProcessScheduler::ProcessScheduler()
 
 }
 
-ProcessScheduler::ProcessScheduler( boost::filesystem::path p, std::string arguments, std::string pid_alias)
+ProcessScheduler::ProcessScheduler( filesystem::path p, string arguments, string pid_alias)
     :
-      mSelf(boost::process::self::get_instance()),
-      mChildrenObjectsMap(new std::map<std::string, boost::process::child>),
+      mSelf(self::get_instance()),
+      mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
       mProcessCheckInterval(1000),
       mIsProcessCheckInProgress(false)
@@ -48,10 +52,10 @@ ProcessScheduler::ProcessScheduler( boost::filesystem::path p, std::string argum
     LaunchProcess(p, arguments, pid_alias);
 }
 
-ProcessScheduler::ProcessScheduler( std::string s , std::string pid_alias)
+ProcessScheduler::ProcessScheduler( string s , string pid_alias)
     :
-      mSelf(boost::process::self::get_instance()),
-      mChildrenObjectsMap(new std::map<std::string, boost::process::child>),
+      mSelf(self::get_instance()),
+      mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
       mProcessCheckInterval(1000),
       mIsProcessCheckInProgress(false)
@@ -65,57 +69,57 @@ ProcessScheduler::~ProcessScheduler()
     delete mChildrenObjectsMap;
 }
 
-void ProcessScheduler::LaunchProcess(boost::filesystem::path p, std::string arguments, std::string pid_alias)
+void ProcessScheduler::LaunchProcess(filesystem::path p, string arguments, string pid_alias)
 {
 
-    std::vector<std::string> args;
-    std::vector<std::string> tmp = StringToVector(arguments);
+    vector<string> args;
+    vector<string> tmp = StringToVector(arguments);
     args.push_back(p.filename().c_str());
     args.insert(args.end(), tmp.begin(), tmp.end());
 
-    std::string exec = boost::process::find_executable_in_path(p.filename().c_str(), p.parent_path().c_str());
-    boost::process::context ctx;
-    ctx.environment = boost::process::self::get_environment();
+    string exec = find_executable_in_path(p.filename().c_str(), p.parent_path().c_str());
+    context ctx;
+    ctx.environment = self::get_environment();
 
     {
-        boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
-        mChildrenObjectsMap->insert(std::pair<std::string, boost::process::child>(pid_alias, boost::process::launch(exec, args, ctx)));
+        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        mChildrenObjectsMap->insert(pair<string, child>(pid_alias, launch(exec, args, ctx)));
     }
 
     if(mIsProcessCheckInProgress == false)
     {
 #ifdef PM_DEBUG
-        std::cout << "Starting processes check thread" << std::endl;
+        cout << "Starting processes check thread" << endl;
 #endif
-        mThreadCheckProcesses = boost::thread(&ProcessScheduler::CheckProcesses, this);
+        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
         mIsProcessCheckInProgress = true;
     }
 }
 
-void ProcessScheduler::LaunchShell(std::string s , std::string pid_alias)
+void ProcessScheduler::LaunchShell(string s , string pid_alias)
 {
-    boost::process::context ctx;
-    ctx.environment = boost::process::self::get_environment();
+    context ctx;
+    ctx.environment = self::get_environment();
 
     {
-        boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
-        mChildrenObjectsMap->insert(std::pair<std::string, boost::process::child>(pid_alias, boost::process::launch_shell(s, ctx)));
+        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        mChildrenObjectsMap->insert(pair<string, child>(pid_alias, launch_shell(s, ctx)));
     }
 
     if(mIsProcessCheckInProgress == false)
     {
-        mThreadCheckProcesses = boost::thread(&ProcessScheduler::CheckProcesses, this);
+        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
         mIsProcessCheckInProgress = true;
     }
 }
 
-void ProcessScheduler::TerminateProcess(std::string pid_alias)
+void ProcessScheduler::TerminateProcess(string pid_alias)
 {
-    boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapLock);
     mCurTerminatigPidAlias = pid_alias;
     try
     {
-        /*boost::process::status s =*/  /*mChildrenObjectsMap->at(pid_alias).wait();*/
+        /*status s =*/  /*mChildrenObjectsMap->at(pid_alias).wait();*/
 
         /*
         *  Use status if needed
@@ -124,9 +128,9 @@ void ProcessScheduler::TerminateProcess(std::string pid_alias)
         mChildrenObjectsMap->at(pid_alias).terminate();
 
     }
-    catch(boost::system::system_error& e)
+    catch(system::system_error& e)
     {
-        std::cerr << "TerminateProcess() = " << e.what() << std::endl;
+        cerr << "TerminateProcess() = " << e.what() << endl;
         mChildrenObjectsMap->erase(mCurTerminatigPidAlias);
     }
 }
@@ -139,11 +143,11 @@ void ProcessScheduler::TerminateAllProcesses()
     {
         try
         {
-            /* std::map<std::string, boost::process::child*>::iterator could be instead of auto */
+            /* map<string, child*>::iterator could be instead of auto */
             for(auto it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
             {
                 mCurTerminatigPidAlias = it->first;
-                /*boost::process::status s =*/ /*it->second.wait();*/
+                /*status s =*/ /*it->second.wait();*/
 
                 /*
                 *  Use status if needed
@@ -154,9 +158,9 @@ void ProcessScheduler::TerminateAllProcesses()
             }
             isFinished=true;
         }
-        catch(boost::system::system_error& e)
+        catch(system::system_error& e)
         {
-            std::cerr << "TerminateAllProcesses() = " << e.what() << std::endl;
+            cerr << "TerminateAllProcesses() = " << e.what() << endl;
             mChildrenObjectsMap->erase(mCurTerminatigPidAlias);
         }
     }
@@ -167,34 +171,34 @@ void ProcessScheduler::ViewProcessPids()
 {
     try
     {
-        boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
-        /* std::map<std::string, boost::process::child>::iterator could be instead of auto */
+        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        /* map<string, child>::iterator could be instead of auto */
         if(!mChildrenObjectsMap->empty())
             for(auto it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
             {
-                std::cout << "Process id: " << it->second.get_id() << " Name: " << it->first << std::endl;
+                cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
             }
         else
-            std::cerr << "Process list empty" << std::endl;
+            cerr << "Process list empty" << endl;
     }
-    catch(boost::system::system_error& e)
+    catch(system::system_error& e)
     {
-        std::cerr << "ViewProcessPids() = " << e.what() << std::endl;
+        cerr << "ViewProcessPids() = " << e.what() << endl;
     }
 }
 
-void ProcessScheduler::ViewProcessPid(std::string pid_alias)
+void ProcessScheduler::ViewProcessPid(string pid_alias)
 {
-    boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapLock);
     if(mChildrenObjectsMap->find(pid_alias) != mChildrenObjectsMap->end())
-        std::cout << "Process name: " << pid_alias << " Id: " << mChildrenObjectsMap->at(pid_alias).get_id() << std::endl;
+        cout << "Process name: " << pid_alias << " Id: " << mChildrenObjectsMap->at(pid_alias).get_id() << endl;
     else
-        std::cout << "No such process name: " << pid_alias << std::endl;
+        cout << "No such process name: " << pid_alias << endl;
 }
 
 bool ProcessScheduler::IsAnyProcessRunning()
 {
-    boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapLock);
     return !mChildrenObjectsMap->empty();
 }
 
@@ -207,38 +211,38 @@ void ProcessScheduler::CheckProcesses()
     {
         try
         {
-            boost::this_thread::interruption_point();
+            this_thread::interruption_point();
             {
-                boost::lock_guard<boost::mutex> lock(mChildrenObjectsMapLock);
-                /* std::map<std::string, boost::process::child>::iterator could be instead of auto */
+                lock_guard<mutex> lock(mChildrenObjectsMapLock);
+                /* map<string, child>::iterator could be instead of auto */
                 for(auto it = mCurCheckPidIt; it != mChildrenObjectsMap->end(); ++it)
                 {
 #ifdef PM_DEBUG
-                    std::cerr << "CheckProcesses() = " << "Process Name: " << it->first << " PID: " << it->second.get_id() << std::endl;
+                    cerr << "CheckProcesses() = " << "Process Name: " << it->first << " PID: " << it->second.get_id() << endl;
 #endif
                     mCurCheckPidIt = it;
                     mCurCheckPidAlias = it->first;
                     it->second.get_id();
                 }
 #ifdef PM_DEBUG
-                    std::cerr <<  std::endl;
+                    cerr <<  endl;
 #endif
                 mCurCheckPidIt = mChildrenObjectsMap->begin();
             }
-            boost::this_thread::interruption_point();
-            boost::this_thread::sleep(mProcessCheckInterval);
+            this_thread::interruption_point();
+            this_thread::sleep(mProcessCheckInterval);
         }
-        catch(boost::system::system_error& e)
+        catch(system::system_error& e)
         {
 #ifdef PM_DEBUG
-            std::cerr << "CheckProcesses() = " << e.what() << std::endl;
+            cerr << "CheckProcesses() = " << e.what() << endl;
 #endif
             mChildrenObjectsMap->erase(mCurCheckPidAlias);
         }
-        catch(boost::thread_interrupted&)
+        catch(thread_interrupted&)
         {
 #ifdef PM_DEBUG
-            std::cerr << "CheckProcesses() = " << "Thread interrupted" << std::endl;
+            cerr << "CheckProcesses() = " << "Thread interrupted" << endl;
 #endif
             isFinised = true;
         }

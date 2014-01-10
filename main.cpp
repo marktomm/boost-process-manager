@@ -4,7 +4,7 @@
 
 int main(/*int argc, char *argv[]*/)
 {
-   Process::ProcessScheduler p;
+    Process::ProcessScheduler p;
 
     p.LaunchProcess("/home/mark/tmp/cpp/main", "", "main");
     p.LaunchProcess("/home/mark/tmp/cpp/main2", "", "main2");
