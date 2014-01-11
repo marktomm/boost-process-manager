@@ -16,15 +16,19 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
+DEFINES += PM_DEBUG
+
 LIBS +=-lboost_system \
         -lboost_filesystem \
         -lboost_date_time \
         -lboost_thread
 
 SOURCES += main.cpp \
-    ProcessManager.cpp
+    ProcessManager.cpp \
+    ProcessManagerException.cpp
 
 QMAKE_CXXFLAGS += -std=c++0x
 
 HEADERS += \
-    ProcessManager.h
+    ProcessManager.h \
+    ProcessManagerException.h

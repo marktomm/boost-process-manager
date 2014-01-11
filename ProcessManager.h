@@ -12,12 +12,15 @@
 #include <iomanip>
 #include <iostream>
 
+#include "ProcessManagerException.h"
+
 namespace Process
 {
 
 // TODO : See if it is possible to use boost::thread::id to check for not a thread instead of mIsProcessCheckInProgress
 // TODO : Create wait() mehtod to wait for all subprocesses to finish
-// TODO : Fix CheckProcesses() to catch finished processes. Mb with kill()
+// TODO : Opt CheckProcesses(): Should auto it = mCurCheckPidIt; or overkill with code bload?
+// TOOD : Opt ProcessManagerException class: Is best way?
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
 
 using namespace std;
@@ -55,14 +58,18 @@ private:
 
     void CheckProcesses();
 
+    void _LaunchProcess(path p, string arguments, string pid_alias);
+    void _LaunchShell(string s , string pid_alias);
+
+
     self &mSelf;
     map<string, child> *mChildrenObjectsMap;
     string mCurTerminatigPidAlias, mCurCheckPidAlias;
 
     milliseconds mProcessCheckInterval;
-    bool mIsProcessCheckInProgress;
-    boost::mutex mChildrenObjectsMapLock;
-    boost::thread mThreadCheckProcesses;
+    mutex mChildrenObjectsMapLock;
+    thread mThreadCheckProcesses;
+    thread_group mThreadWaitForProcesses;
     map<string, child>::iterator mCurCheckPidIt;
 };
 
