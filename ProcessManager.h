@@ -20,6 +20,7 @@ namespace Process
 // TODO : Opt CheckProcesses(): Should auto it = mCurCheckPidIt; or overkill with code bload?
 // TOOD : Opt ProcessManagerException class: Is best way?
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
+// TODO : Implement IPC mechanism.
 
 using namespace std;
 using namespace boost;

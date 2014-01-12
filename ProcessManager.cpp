@@ -195,12 +195,7 @@ bool ProcessScheduler::IsAnyProcessRunning()
 void ProcessScheduler::Wait()
 {
     while(!mChildrenObjectsMap->empty())
-    {
-#ifdef PM_DEBUG
-                    cerr << "Wait Thread Count = " << mThreadWaitForProcesses.size() << endl;
-#endif
         this_thread::sleep(mWaitInterval);
-    }
 }
 
 
