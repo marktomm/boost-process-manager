@@ -17,7 +17,6 @@
 namespace Process
 {
 
-// TODO : Create wait() mehtod to wait for all subprocesses to finish
 // TODO : Opt CheckProcesses(): Should auto it = mCurCheckPidIt; or overkill with code bload?
 // TOOD : Opt ProcessManagerException class: Is best way?
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
