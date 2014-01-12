@@ -17,7 +17,6 @@
 namespace Process
 {
 
-// TODO : See if it is possible to use boost::thread::id to check for not a thread instead of mIsProcessCheckInProgress
 // TODO : Create wait() mehtod to wait for all subprocesses to finish
 // TODO : Opt CheckProcesses(): Should auto it = mCurCheckPidIt; or overkill with code bload?
 // TOOD : Opt ProcessManagerException class: Is best way?
@@ -39,8 +38,8 @@ public:
 
 
     ProcessScheduler();
-    ProcessScheduler( path p, string arguments, string pid_alias);
-    ProcessScheduler( string s , string pid_alias);
+    ProcessScheduler(path p, string arguments, string pid_alias);
+    ProcessScheduler(string s , string pid_alias);
     ~ProcessScheduler();
 
     void LaunchProcess(path p, string arguments, string pid_alias);
@@ -53,6 +52,7 @@ public:
     void ViewProcessPid(string pid_alias);
 
     bool IsAnyProcessRunning();
+    void Wait();
 
 private:
 
@@ -66,7 +66,7 @@ private:
     map<string, child> *mChildrenObjectsMap;
     string mCurTerminatigPidAlias, mCurCheckPidAlias;
 
-    milliseconds mProcessCheckInterval;
+    milliseconds mProcessCheckInterval, mWaitInterval;
     mutex mChildrenObjectsMapLock;
     thread mThreadCheckProcesses;
     thread_group mThreadWaitForProcesses;

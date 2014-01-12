@@ -2,7 +2,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
-#include <boost/function.hpp>
 
 #include <deque>
 #include <string>
@@ -43,36 +42,38 @@ ProcessScheduler::ProcessScheduler()
       mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
       mProcessCheckInterval(1000),
+      mWaitInterval(2000),
       mThreadWaitForProcesses()
 {
-      mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
+
 }
 
 
 
-ProcessScheduler::ProcessScheduler( filesystem::path p, string arguments, string pid_alias)
+ProcessScheduler::ProcessScheduler(filesystem::path p, string arguments, string pid_alias)
     :
       mSelf(self::get_instance()),
       mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
       mProcessCheckInterval(1000),
+      mWaitInterval(2000),
       mThreadWaitForProcesses()
 {
     LaunchProcess(p, arguments, pid_alias);
-    mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
 }
 
 
 
-ProcessScheduler::ProcessScheduler( string s , string pid_alias)
+ProcessScheduler::ProcessScheduler(string s , string pid_alias)
     :
       mSelf(self::get_instance()),
       mChildrenObjectsMap(new map<string, child>),
       mCurTerminatigPidAlias(""),
-      mProcessCheckInterval(1000)
+      mProcessCheckInterval(1000),
+      mWaitInterval(2000),
+      mThreadWaitForProcesses()
 {
     LaunchShell(s, pid_alias);
-    mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
 }
 
 
@@ -89,6 +90,9 @@ ProcessScheduler::~ProcessScheduler()
 void ProcessScheduler::LaunchProcess(filesystem::path p, string arguments, string pid_alias)
 {
     mThreadWaitForProcesses.create_thread( bind( &ProcessScheduler::_LaunchProcess, this, p, arguments, pid_alias ) );
+
+    if(thread::id() == mThreadCheckProcesses.get_id())
+        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
 }
 
 
@@ -96,6 +100,9 @@ void ProcessScheduler::LaunchProcess(filesystem::path p, string arguments, strin
 void ProcessScheduler::LaunchShell(string s , string pid_alias)
 {
     mThreadWaitForProcesses.create_thread( bind( &ProcessScheduler::_LaunchShell, this, s, pid_alias ) );
+
+    if(thread::id() == mThreadCheckProcesses.get_id())
+        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
 }
 
 
@@ -153,9 +160,8 @@ void ProcessScheduler::ViewProcessPids()
         lock_guard<mutex> lock(mChildrenObjectsMapLock);
         if(!mChildrenObjectsMap->empty())
             for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
-            {
                 cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
-            }
+
         else
             cerr << "Process list empty" << endl;
     }
@@ -186,13 +192,21 @@ bool ProcessScheduler::IsAnyProcessRunning()
 
 
 
+void ProcessScheduler::Wait()
+{
+    while(mThreadWaitForProcesses.size() != 0)
+    {
+#ifdef PM_DEBUG
+                    cerr << "Wait Thread Count = " << mThreadWaitForProcesses.size() << endl;
+#endif
+        this_thread::sleep(mWaitInterval);
+    }
+}
+
+
+
 void ProcessScheduler::CheckProcesses()
 {
-    {
-        while(mChildrenObjectsMap->empty())
-            this_thread::sleep(mProcessCheckInterval);
-    }
-
     mCurCheckPidIt = mChildrenObjectsMap->begin();
     bool isFinised = false;
     while(!isFinised)
@@ -215,12 +229,6 @@ void ProcessScheduler::CheckProcesses()
                     path p(s);
                     if(0 == kill(proc_id, 0))
                     {
-                        if(!exists(p))
-                        {
-                            s =  p.c_str();
-                            s += " does not exist. CheckProcess FATAL ERROR.";
-                            throw ProcessManagerException(s.c_str());
-                        }
                         ifstream is(p.c_str(), ios::in);
                         s.erase();
                         getline(is, s);
