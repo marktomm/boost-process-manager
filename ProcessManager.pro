@@ -27,7 +27,7 @@ SOURCES += main.cpp \
     ProcessManager.cpp \
     ProcessManagerException.cpp
 
-QMAKE_CXXFLAGS += -std=c++0x
+#QMAKE_CXXFLAGS += -std=c++0x
 
 HEADERS += \
     ProcessManager.h \

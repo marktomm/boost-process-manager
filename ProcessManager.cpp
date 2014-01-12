@@ -127,8 +127,7 @@ void ProcessScheduler::TerminateAllProcesses()
     {
         try
         {
-            /* map<string, child*>::iterator could be instead of auto */
-            for(auto it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
+            for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
             {
                 mCurTerminatigPidAlias = it->first;
                 it->second.terminate();
@@ -152,9 +151,8 @@ void ProcessScheduler::ViewProcessPids()
     try
     {
         lock_guard<mutex> lock(mChildrenObjectsMapLock);
-        /* map<string, child>::iterator could be instead of auto */
         if(!mChildrenObjectsMap->empty())
-            for(auto it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
+            for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
             {
                 cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
             }
@@ -204,8 +202,7 @@ void ProcessScheduler::CheckProcesses()
             this_thread::interruption_point();
             {
                 lock_guard<mutex> lock(mChildrenObjectsMapLock);
-                /* map<string, child>::iterator could be instead of auto */
-                for(auto it = mCurCheckPidIt; it != mChildrenObjectsMap->end(); ++it)
+                for(map<string, child>::iterator it = mCurCheckPidIt; it != mChildrenObjectsMap->end(); ++it)
                 {
                     mCurCheckPidIt = it;
                     mCurCheckPidAlias = it->first;
