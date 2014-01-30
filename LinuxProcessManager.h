@@ -2,16 +2,15 @@
 #define H_PROCESS_MANAGER
 
 #include <boost/process.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
 #include <deque>
-#include <string>
 #include <vector>
 #include <sstream>
 #include <iomanip>
 #include <iostream>
 
+#include "ProcessManagerBase.h"
 #include "ProcessManagerException.h"
 
 namespace Process
@@ -20,7 +19,8 @@ namespace Process
 // TODO : Opt CheckProcesses(): Should auto it = mCurCheckPidIt; or overkill with code bload?
 // TOOD : Opt ProcessManagerException class: Is best way?
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
-// TODO : Implement IPC mechanism.
+// TODO : Implement IPC mechanism
+// TODO : LinuxProcessManager: Launh functions shoudld use posix version
 
 using namespace std;
 using namespace boost;
@@ -31,16 +31,16 @@ using namespace boost::filesystem;
 
 vector<string> StringToVector(string s);
 
-class ProcessScheduler
+class LinuxProcessManager: public ProcessManagerBase
 {
 public:
 
 
 
-    ProcessScheduler();
-    ProcessScheduler(path p, string arguments, string pid_alias);
-    ProcessScheduler(string s , string pid_alias);
-    ~ProcessScheduler();
+    LinuxProcessManager();
+    LinuxProcessManager(path p, string arguments, string pid_alias);
+    LinuxProcessManager(string s , string pid_alias);
+    ~LinuxProcessManager();
 
     void LaunchProcess(path p, string arguments, string pid_alias);
     void LaunchShell(string s , string pid_alias);
@@ -56,10 +56,16 @@ public:
 
 private:
 
+
+    void TerminateProcessImpl(string pid_alias);
+    void TerminateAllProcesssesImpl() ;
+
+    void WaitImpl();
+
     void CheckProcesses();
 
-    void _LaunchProcess(path p, string arguments, string pid_alias);
-    void _LaunchShell(string s , string pid_alias);
+    void LaunchProcessImpl(path p, string arguments, string pid_alias);
+    void LaunchShellImpl(string s , string pid_alias);
 
 
     self &mSelf;

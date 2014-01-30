@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include "ProcessManager.h"
+#include "LinuxProcessManager.h"
 
 namespace Process
 {
@@ -36,7 +36,7 @@ vector<string> StringToVector(string s)
 
 
 
-ProcessScheduler::ProcessScheduler()
+LinuxProcessManager::LinuxProcessManager()
     :
       mSelf(self::get_instance()),
       mChildrenObjectsMap(new map<string, child>),
@@ -50,7 +50,7 @@ ProcessScheduler::ProcessScheduler()
 
 
 
-ProcessScheduler::ProcessScheduler(filesystem::path p, string arguments, string pid_alias)
+LinuxProcessManager::LinuxProcessManager(filesystem::path p, string arguments, string pid_alias)
     :
       mSelf(self::get_instance()),
       mChildrenObjectsMap(new map<string, child>),
@@ -64,7 +64,7 @@ ProcessScheduler::ProcessScheduler(filesystem::path p, string arguments, string 
 
 
 
-ProcessScheduler::ProcessScheduler(string s , string pid_alias)
+LinuxProcessManager::LinuxProcessManager(string s , string pid_alias)
     :
       mSelf(self::get_instance()),
       mChildrenObjectsMap(new map<string, child>),
@@ -78,7 +78,7 @@ ProcessScheduler::ProcessScheduler(string s , string pid_alias)
 
 
 
-ProcessScheduler::~ProcessScheduler()
+LinuxProcessManager::~LinuxProcessManager()
 {
     TerminateAllProcesses();
 
@@ -87,27 +87,87 @@ ProcessScheduler::~ProcessScheduler()
 
 
 
-void ProcessScheduler::LaunchProcess(filesystem::path p, string arguments, string pid_alias)
+void LinuxProcessManager::LaunchProcess(filesystem::path p, string arguments, string pid_alias)
 {
-    mThreadWaitForProcesses.create_thread( bind( &ProcessScheduler::_LaunchProcess, this, p, arguments, pid_alias ) );
+    mThreadWaitForProcesses.create_thread( bind( &LinuxProcessManager::LaunchProcessImpl, this, p, arguments, pid_alias ) );
 
     if(thread::id() == mThreadCheckProcesses.get_id())
-        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
+        mThreadCheckProcesses = thread(&LinuxProcessManager::CheckProcesses, this);
 }
 
 
 
-void ProcessScheduler::LaunchShell(string s , string pid_alias)
+void LinuxProcessManager::LaunchShell(string s , string pid_alias)
 {
-    mThreadWaitForProcesses.create_thread( bind( &ProcessScheduler::_LaunchShell, this, s, pid_alias ) );
+    mThreadWaitForProcesses.create_thread( bind( &LinuxProcessManager::LaunchShellImpl, this, s, pid_alias ) );
 
     if(thread::id() == mThreadCheckProcesses.get_id())
-        mThreadCheckProcesses = thread(&ProcessScheduler::CheckProcesses, this);
+        mThreadCheckProcesses = thread(&LinuxProcessManager::CheckProcesses, this);
 }
 
 
 
-void ProcessScheduler::TerminateProcess(string pid_alias)
+void LinuxProcessManager::TerminateProcess(string pid_alias)
+{
+    TerminateProcessImpl(pid_alias);
+}
+
+
+
+void LinuxProcessManager::TerminateAllProcesses()
+{
+    TerminateAllProcesssesImpl();
+}
+
+
+
+void LinuxProcessManager::ViewProcessPids()
+{
+    try
+    {
+        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        if(!mChildrenObjectsMap->empty())
+            for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
+                cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
+
+        else
+            cerr << "Process list empty" << endl;
+    }
+    catch(system::system_error& e)
+    {
+        cerr << "ViewProcessPids() = " << e.what() << endl;
+    }
+}
+
+
+
+void LinuxProcessManager::ViewProcessPid(string pid_alias)
+{
+    lock_guard<mutex> lock(mChildrenObjectsMapLock);
+    if(mChildrenObjectsMap->find(pid_alias) != mChildrenObjectsMap->end())
+        cout << "Process name: " << pid_alias << " Id: " << mChildrenObjectsMap->at(pid_alias).get_id() << endl;
+    else
+        cout << "No such process name: " << pid_alias << endl;
+}
+
+
+
+bool LinuxProcessManager::IsAnyProcessRunning()
+{
+    lock_guard<mutex> lock(mChildrenObjectsMapLock);
+    return !mChildrenObjectsMap->empty();
+}
+
+
+
+void LinuxProcessManager::Wait()
+{
+    WaitImpl();
+}
+
+
+
+void LinuxProcessManager::TerminateProcessImpl(string pid_alias)
 {
     lock_guard<mutex> lock(mChildrenObjectsMapLock);
     mCurTerminatigPidAlias = pid_alias;
@@ -125,7 +185,7 @@ void ProcessScheduler::TerminateProcess(string pid_alias)
 
 
 
-void ProcessScheduler::TerminateAllProcesses()
+void LinuxProcessManager::TerminateAllProcesssesImpl()
 {
     mThreadCheckProcesses.interrupt();
     mThreadWaitForProcesses.interrupt_all();
@@ -153,46 +213,7 @@ void ProcessScheduler::TerminateAllProcesses()
 
 
 
-void ProcessScheduler::ViewProcessPids()
-{
-    try
-    {
-        lock_guard<mutex> lock(mChildrenObjectsMapLock);
-        if(!mChildrenObjectsMap->empty())
-            for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
-                cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
-
-        else
-            cerr << "Process list empty" << endl;
-    }
-    catch(system::system_error& e)
-    {
-        cerr << "ViewProcessPids() = " << e.what() << endl;
-    }
-}
-
-
-
-void ProcessScheduler::ViewProcessPid(string pid_alias)
-{
-    lock_guard<mutex> lock(mChildrenObjectsMapLock);
-    if(mChildrenObjectsMap->find(pid_alias) != mChildrenObjectsMap->end())
-        cout << "Process name: " << pid_alias << " Id: " << mChildrenObjectsMap->at(pid_alias).get_id() << endl;
-    else
-        cout << "No such process name: " << pid_alias << endl;
-}
-
-
-
-bool ProcessScheduler::IsAnyProcessRunning()
-{
-    lock_guard<mutex> lock(mChildrenObjectsMapLock);
-    return !mChildrenObjectsMap->empty();
-}
-
-
-
-void ProcessScheduler::Wait()
+void LinuxProcessManager::WaitImpl()
 {
     while(!mChildrenObjectsMap->empty())
         this_thread::sleep(mWaitInterval);
@@ -200,7 +221,7 @@ void ProcessScheduler::Wait()
 
 
 
-void ProcessScheduler::CheckProcesses()
+void LinuxProcessManager::CheckProcesses()
 {
     mCurCheckPidIt = mChildrenObjectsMap->begin();
     bool isFinised = false;
@@ -274,7 +295,7 @@ void ProcessScheduler::CheckProcesses()
 
 
 
-void ProcessScheduler::_LaunchProcess(filesystem::path p, string arguments, string pid_alias)
+void LinuxProcessManager::LaunchProcessImpl(filesystem::path p, string arguments, string pid_alias)
 {
 
     vector<string> args;
@@ -288,7 +309,7 @@ void ProcessScheduler::_LaunchProcess(filesystem::path p, string arguments, stri
 
     {
         lock_guard<mutex> lock(mChildrenObjectsMapLock);
-        mChildrenObjectsMap->insert(pair<string, child>(pid_alias, launch(exec, args, ctx)));
+        mChildrenObjectsMap->insert(pair<string, child>(pid_alias, process::launch(exec, args, ctx))); // wtf?
     }
 
     mChildrenObjectsMap->at(pid_alias).wait();
@@ -296,7 +317,7 @@ void ProcessScheduler::_LaunchProcess(filesystem::path p, string arguments, stri
 
 
 
-void ProcessScheduler::_LaunchShell(string s , string pid_alias)
+void LinuxProcessManager::LaunchShellImpl(string s , string pid_alias)
 {
     context ctx;
     ctx.environment = self::get_environment();

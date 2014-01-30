@@ -12,6 +12,7 @@ QT       -= gui
 
 TARGET = ProcessManager
 CONFIG   += console
+CONFIG   += debug
 CONFIG   -= app_bundle
 
 TEMPLATE = app
@@ -24,11 +25,12 @@ LIBS +=-lboost_system \
         -lboost_thread
 
 SOURCES += main.cpp \
-    ProcessManager.cpp \
+    LinuxProcessManager.cpp \
     ProcessManagerException.cpp
 
-#QMAKE_CXXFLAGS += -std=c++0x
+QMAKE_CXXFLAGS += -ggdb
 
 HEADERS += \
-    ProcessManager.h \
-    ProcessManagerException.h
+    LinuxProcessManager.h \
+    ProcessManagerException.h \
+    ProcessManagerBase.h

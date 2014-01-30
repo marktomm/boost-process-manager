@@ -1,10 +1,10 @@
 #include <unistd.h>
 
-#include "ProcessManager.h"
+#include "LinuxProcessManager.h"
 
 int main(/*int argc, char *argv[]*/)
 {
-    Process::ProcessScheduler p;
+    Process::LinuxProcessManager p;
 
     p.LaunchProcess("/home/mark/tmp/cpp/main", "", "main");
     p.LaunchProcess("/home/mark/tmp/cpp/main2", "", "main2");
