@@ -125,7 +125,7 @@ void LinuxProcessManager::ViewProcessPids()
 {
     try
     {
-        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        lock_guard<mutex> lock(mChildrenObjectsMapMutex);
         if(!mChildrenObjectsMap->empty())
             for(map<string, child>::iterator it = mChildrenObjectsMap->begin(); it != mChildrenObjectsMap->end(); ++it)
                 cout << "Process id: " << it->second.get_id() << " Name: " << it->first << endl;
@@ -143,7 +143,7 @@ void LinuxProcessManager::ViewProcessPids()
 
 void LinuxProcessManager::ViewProcessPid(string pid_alias)
 {
-    lock_guard<mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapMutex);
     if(mChildrenObjectsMap->find(pid_alias) != mChildrenObjectsMap->end())
         cout << "Process name: " << pid_alias << " Id: " << mChildrenObjectsMap->at(pid_alias).get_id() << endl;
     else
@@ -154,7 +154,7 @@ void LinuxProcessManager::ViewProcessPid(string pid_alias)
 
 bool LinuxProcessManager::IsAnyProcessRunning()
 {
-    lock_guard<mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapMutex);
     return !mChildrenObjectsMap->empty();
 }
 
@@ -169,7 +169,7 @@ void LinuxProcessManager::Wait()
 
 void LinuxProcessManager::TerminateProcessImpl(string pid_alias)
 {
-    lock_guard<mutex> lock(mChildrenObjectsMapLock);
+    lock_guard<mutex> lock(mChildrenObjectsMapMutex);
     mCurTerminatigPidAlias = pid_alias;
     try
     {
@@ -231,7 +231,7 @@ void LinuxProcessManager::CheckProcesses()
         {
             this_thread::interruption_point();
             {
-                lock_guard<mutex> lock(mChildrenObjectsMapLock);
+                lock_guard<mutex> lock(mChildrenObjectsMapMutex);
                 for(map<string, child>::iterator it = mCurCheckPidIt; it != mChildrenObjectsMap->end(); ++it)
                 {
                     mCurCheckPidIt = it;
@@ -273,6 +273,7 @@ void LinuxProcessManager::CheckProcesses()
 #ifdef PM_DEBUG
             cerr << "CheckProcesses() = " << e.what() << endl;
 #endif
+            lock_guard<mutex> lock(mChildrenObjectsMapMutex);
             mChildrenObjectsMap->erase(mCurCheckPidAlias);
         }
         catch(thread_interrupted&)
@@ -287,6 +288,7 @@ void LinuxProcessManager::CheckProcesses()
 #ifdef PM_DEBUG
             cerr << "CheckProcesses() = " << e.what() << endl;
 #endif
+            lock_guard<mutex> lock(mChildrenObjectsMapMutex);
             mChildrenObjectsMap->erase(mCurCheckPidAlias);
             mCurCheckPidIt = mChildrenObjectsMap->begin();
         }
@@ -308,7 +310,7 @@ void LinuxProcessManager::LaunchProcessImpl(filesystem::path p, string arguments
     ctx.environment = self::get_environment();
 
     {
-        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        lock_guard<mutex> lock(mChildrenObjectsMapMutex);
         mChildrenObjectsMap->insert(pair<string, child>(pid_alias, process::launch(exec, args, ctx))); // wtf?
     }
 
@@ -323,7 +325,7 @@ void LinuxProcessManager::LaunchShellImpl(string s , string pid_alias)
     ctx.environment = self::get_environment();
 
     {
-        lock_guard<mutex> lock(mChildrenObjectsMapLock);
+        lock_guard<mutex> lock(mChildrenObjectsMapMutex);
         mChildrenObjectsMap->insert(pair<string, child>(pid_alias, launch_shell(s, ctx)));
     }
     mChildrenObjectsMap->at(pid_alias).wait();

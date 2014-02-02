@@ -21,7 +21,6 @@ namespace Process
 // TODO : Test wheter it is explicitly needed to call terminate() in TerminateAllProcesses()
 // TODO : Implement IPC mechanism
 // TODO : LinuxProcessManager: Launh functions shoudld use posix version
-// TODO ; use read mutexes where able
 
 using namespace std;
 using namespace boost;
@@ -74,7 +73,7 @@ private:
     string mCurTerminatigPidAlias, mCurCheckPidAlias;
 
     milliseconds mProcessCheckInterval, mWaitInterval;
-    mutex mChildrenObjectsMapLock;
+    mutex mChildrenObjectsMapMutex;
     thread mThreadCheckProcesses;
     thread_group mThreadWaitForProcesses;
     map<string, child>::iterator mCurCheckPidIt;
